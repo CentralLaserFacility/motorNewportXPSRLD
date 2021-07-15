@@ -92,7 +92,7 @@ Versions: Release 4-5 and higher.
 
 #include <epicsExport.h>
 #include "XPSController.h"
-#include "XPS_C8_drivers.h"
+#include "XPS_RLD_drivers.h"
 #include "xps_ftp.h"
 #include "xpsSFTPUpload.h"
 #include "XPSAxis.h"

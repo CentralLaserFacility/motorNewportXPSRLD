@@ -5,5 +5,8 @@
 # Use motorNewport's RELEASE.local when building outside motor
 -include $(TOP)/configure/RELEASE.local
 
-SUPPORT = $(MOTOR)/..
-
+#SUPPORT = $(MOTOR)/..
+SUPPORT =/usr/local/epics/support
+EPICS_BASE =/usr/local/epics/base
+MOTOR = $(SUPPORT)/motor/current
+ASYN = $(SUPPORT)/asyn/current

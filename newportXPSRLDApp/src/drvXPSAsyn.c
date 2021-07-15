@@ -106,7 +106,7 @@ Modification Log:
 #include "epicsExport.h"
 #define DEFINE_MOTOR_PROTOTYPES 1
 #include "motor_interface.h"
-#include "XPS_C8_drivers.h"
+#include "XPS_RLD_drivers.h"
 #include "XPSAsynInterpose.h"
 #include "tclCall.h"
 
@@ -170,6 +170,7 @@ typedef struct
   double FeedForwardGainVelocity;
   double FeedForwardGainAcceleration;
   double Friction;
+  double KFeedForwardJerk;
 } xpsCorrectorInfo_t;
 
 typedef struct motorAxisHandle
@@ -1943,7 +1944,8 @@ static int PositionerCorrectorPIDFFAccelerationGetWrapper(AXIS_HDL pAxis)
                                                  &xpsCorrectorInfo->GKI,
                                                  &xpsCorrectorInfo->GKD,
                                                  &xpsCorrectorInfo->KForm,
-                                                 &xpsCorrectorInfo->FeedForwardGainAcceleration);
+                                                 &xpsCorrectorInfo->FeedForwardGainAcceleration,
+                                                 &xpsCorrectorInfo->KFeedForwardJerk);
 }
 
 
