@@ -1,5 +1,10 @@
 # motorNewport Releases
 
+## __R1-2 (2021-07-15)__
+Amend DLL functions to be compatible XPS-RLD's DLL functions
+Not all functions were reviewed, a full review of all implemented DLL functions with RLD's docs to support all functions
+
+
 ## __R1-1 (2020-05-12)__
 R1-1 is a release based on the master branch.  
 
