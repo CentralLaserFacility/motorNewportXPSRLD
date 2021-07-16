@@ -10,7 +10,7 @@ option +r;
 #include "seqPVmacros.h"
 %%#define epicsExportSharedSymbols
 %%#include <shareLib.h>
-%%#include "XPS_C8_drivers.h"
+%%#include "XPS_RLD_drivers.h"
 
 #define PORT 5001
 #define TIMEOUT 100.0

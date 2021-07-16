@@ -13,7 +13,7 @@
 #define  epicsExportSharedSymbols
 #include <shareLib.h>
 #include "tclCall.h"
-#include "XPS_C8_drivers.h"
+#include "XPS_RLD_drivers.h"
 #include "Socket.h"
 
 #define TIMEOUT 		1

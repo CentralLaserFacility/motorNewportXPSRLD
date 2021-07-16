@@ -94,7 +94,7 @@ using std::endl;
 #include "asynMotorAxis.h"
 #include <epicsExport.h>
 #include "XPSController.h"
-#include "XPS_C8_drivers.h"
+#include "XPS_RLD_drivers.h"
 #include "asynOctetSocket.h"
 #include "XPSAxis.h"
 
@@ -1418,7 +1418,8 @@ asynStatus XPSAxis::PositionerCorrectorPIDFFAccelerationGet()
                                                      &xpsCorrectorInfo_.GKI,
                                                      &xpsCorrectorInfo_.GKD,
                                                      &xpsCorrectorInfo_.KForm,
-                                                     &xpsCorrectorInfo_.FeedForwardGainAcceleration);
+                                                     &xpsCorrectorInfo_.FeedForwardGainAcceleration,
+                                                     &xpsCorrectorInfo_.KFeedForwardJerk);
   return status ? asynError : asynSuccess;
 }
 

@@ -25,6 +25,7 @@ typedef struct
   double FeedForwardGainVelocity;
   double FeedForwardGainAcceleration;
   double Friction;
+  double KFeedForwardJerk;
 } xpsCorrectorInfo_t;
 
 class XPSController;

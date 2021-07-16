@@ -1,46 +1,51 @@
-/* Prog to test the XPS position gathering and trigger during a trajectory scan */
+/* Program to test the XPS position gathering and trigger during a trajectory scan */
 /**/
 #include <stdio.h>
 #include <time.h>
 #define epicsExportSharedSymbols
 #include <shareLib.h>
-#include "XPS_C8_drivers.h"
+#include "XPS_RLD_drivers.h"
 #include "Socket.h"
 #include "xps_ftp.h"
 
-#define XPS_ADDRESS "164.54.160.34"
-#define NUM_ELEMENTS 10
-#define NUM_AXES 2
-#define PULSE_TIME 1.0
+#define XPS_ADDRESS "164.54.160.124"
+#define NUM_TRAJECTORY_ELEMENTS 6
+#define NUM_GATHERING_POINTS 100
+#define NUM_GATHERING_ITEMS 2
+#define NUM_AXES 6
+#define PULSE_TIME 0.01
 #define POLL_TIMEOUT 1.0
 #define DRIVE_TIMEOUT 100.0
 #define USERNAME "Administrator"
 #define PASSWORD "Administrator"
 #define TRAJECTORY_DIRECTORY "/Admin/public/Trajectories"
-#define TRAJECTORY_FILE "test_trajectory"
-#define GATHERING_DIRECTORY "/Admin/public/"
-#define GATHERING_FILE "Gathering.dat"
+#define TRAJECTORY_FILE "TrajectoryScan.trj"
+#define BUFFER_SIZE 32767
 
-epicsShareFunc void xps_gathering()
+int main(int argc, char *argv[])
 {
     int status,poll_socket,drive_socket,end=0;
     SOCKET ftpSocket;
-    char *gatheringData = "GROUP2.POSITIONER1.SetpointPosition;"
-                          "GROUP2.POSITIONER1.CurrentPosition;"
-                          "GROUP2.POSITIONER1.CurrentVelocity;"
-                          "GROUP2.POSITIONER2.SetpointPosition;"
-                          "GROUP2.POSITIONER2.CurrentPosition;"
-                          "GROUP2.POSITIONER2.CurrentVelocity";
-    char *positioner[NUM_AXES] = {"GROUP2.POSITIONER1", "GROUP2.POSITIONER2"};
-    char group[] = "GROUP2";
+    char *gatheringData = "GROUP1.PHI.SetpointPosition;"
+                          "GROUP1.PHI.CurrentPosition;"
+                          "GROUP1.KAPPA.SetpointPosition;"
+                          "GROUP1.KAPPA.CurrentPosition;"
+                          "GROUP1.OMEGA.SetpointPosition;"
+                          "GROUP1.OMEGA.CurrentPosition;"
+                          "GROUP1.PSI.SetpointPosition;"
+                          "GROUP1.PSI.CurrentPosition;"
+                          "GROUP1.2THETA.SetpointPosition;"
+                          "GROUP1.2THETA.CurrentPosition;"
+                          "GROUP1.NU.SetpointPosition;"
+                          "GROUP1.NU.CurrentPosition";
+    char *positioner[NUM_AXES] = {"GROUP1.PHI", "GROUP1.KAPPA", "GROUP1.OMEGA", "GROUP1.PSI", "GROUP1.2THETA", "GROUP1.NU"};
+    char group[] = "GROUP1";
     char outputfilename[500];
     double maxp, minp, maxv, maxa;
-    char buffer[1000];
-    int nitems;
-    double setpoint, actual, velocity;
-    int i,j;
+    char buffer[BUFFER_SIZE];
+    int currentSamples, maxSamples;
+    int i;
     int groupStatus;
-    FILE *gatheringFile;
     int eventID;
     time_t start_time, end_time;
 
@@ -55,13 +60,13 @@ epicsShareFunc void xps_gathering()
         status = GroupInitialize(drive_socket, group);
         if (status) {
             printf("Error calling GroupInitialize error=%d\n", status);
-            return;
+            return status;
         }
         printf("Calling GroupHomeSearch ...\n");
         status = GroupHomeSearch(drive_socket, group);
         if (status) {
             printf("Error calling GroupHomeSearch error=%d\n", status);
-            return;
+            return status;
         }
     }
 
@@ -70,23 +75,23 @@ epicsShareFunc void xps_gathering()
     status = ftpConnect(XPS_ADDRESS, USERNAME, PASSWORD, &ftpSocket);
     if (status != 0) {
         printf("Error calling ftpConnect, status=%d\n", status);
-        return;
+        return status;
     }
     status = ftpChangeDir(ftpSocket, TRAJECTORY_DIRECTORY);
     if (status != 0) {
         printf("Error calling ftpChangeDir, status=%d\n", status);
-        return;
+        return status;
     }
     status = ftpStoreFile(ftpSocket, TRAJECTORY_FILE);
     if (status != 0) {
         printf("Error calling ftpStoreFile, status=%d\n", status);
-        return;
+        return status;
     }
    
     /* Define trajectory output pulses */
      printf("Defining output pulses ...\n");
-    status = MultipleAxesPVTPulseOutputSet(poll_socket, group, 1, 
-                                           NUM_ELEMENTS, PULSE_TIME);
+    status = MultipleAxesPVTPulseOutputSet(poll_socket, group, 2, 
+                                           NUM_TRAJECTORY_ELEMENTS-1, PULSE_TIME);
  
     /*************************** Verify trajectory **********************/
     printf("Verifying trajectory ...\n");
@@ -102,35 +107,35 @@ epicsShareFunc void xps_gathering()
         status = MultipleAxesPVTVerificationResultGet(poll_socket,positioner[i], 
                                                       outputfilename,
                                                       &minp, &maxp, &maxv, &maxa);
-        printf(" positioner 1%d, status %d, Max. pos. %g, Min. pos. %g, Max. vel. %g, Max. accel. %g\n",
+        printf(" positioner %d, status %d, Max. pos. %g, Min. pos. %g, Max. vel. %g, Max. accel. %g\n",
                 i, status, maxp, minp, maxv, maxa);
     }
 
-    if (end == 1) return;    
+    if (end == 1) return -1;    
  
    /***********************Configure Gathering and Timer******************/
     printf("Reseting gathering ...\n");
     status = GatheringReset(poll_socket);
     if (status != 0) {
         printf("Error performing GatheringReset, status=%d\n",status);
-        return;
+        return status;
     }
 
     printf("Defining gathering ...\n");
-    status = GatheringConfigurationSet(poll_socket, NUM_AXES*3, gatheringData);
+    status = GatheringConfigurationSet(poll_socket, NUM_AXES*NUM_GATHERING_ITEMS, gatheringData);
     if (status != 0) {
         printf("Error performing GatheringConfigurationSet, status=%d\n",status);
-        return;
+        return status;
     }
 
     printf("Defining trigger ...\n");
     status = EventExtendedConfigurationTriggerSet(poll_socket, 2, 
-                                                  "Always;GROUP2.PVT.TrajectoryPulse",
+                                                  "Always;GROUP1.PVT.TrajectoryPulse",
                                                   "","","","");
     if (status != 0) {
         printf("Error performing EventExtendedConfigurationTriggerSet, status=%d\n",
                status);
-        return;
+        return status;
     }
 
     printf("Defining action ...\n");
@@ -139,14 +144,14 @@ epicsShareFunc void xps_gathering()
     if (status != 0) {
         printf("Error performing EventExtendedConfigurationActionSet, status=%d\n",
                status);
-        return;
+        return status;
     }
 
     printf("Starting gathering ...\n");
     status= EventExtendedStart(poll_socket, &eventID);
     if (status != 0) {
         printf("Error performing EventExtendedStart, status=%d\n", status);
-        return;
+        return status;
     }
 
 
@@ -154,7 +159,7 @@ epicsShareFunc void xps_gathering()
     status = GroupStatusGet(poll_socket, group, &groupStatus);
     if (status != 0) {
         printf("Error performing GroupStatusGet, status=%d\n", status);
-        return;
+        return status;
     }
     printf("Group status before executing trajectory=%d\n", groupStatus);
     printf("Executing trajectory ...\n");
@@ -164,12 +169,12 @@ epicsShareFunc void xps_gathering()
     printf("Time to execute trajectory=%f\n", difftime(end_time, start_time));
     if (status != 0) {
         printf("Error performing MultipleAxesPVTExecution, status=%d\n", status);    
-        return;
+        return status;
     }
     status = GroupStatusGet(poll_socket, group, &groupStatus);
     if (status != 0) {
         printf("Error performing GroupStatusGet, status=%d\n", status);
-        return;
+        return status;
     }
     printf("Group status after executing trajectory=%d\n", groupStatus);
 
@@ -178,65 +183,39 @@ epicsShareFunc void xps_gathering()
     status = EventExtendedRemove(poll_socket, eventID);
     if (status != 0) {
         printf("Error performing ExtendedEventRemove, status=%d\n", status);
-        return;
+        return status;
     }
 
     /***********************Save the gathered data ***************/
     printf("Stopping gathering ...\n");
     start_time = time(NULL);
-    status = GatheringStopAndSave(drive_socket);
+    status = GatheringStop(drive_socket);
     end_time = time(NULL);
-    printf("Time to save gathering data=%f\n", difftime(end_time, start_time));
+    printf("Time to stop gathering=%f\n", difftime(end_time, start_time));
     if (status != 0) {
-        printf("Error performing GatheringExternalStopAndSave, status=%d\n", status);
-        return;
+        printf("Error performing GatheringExternalStop, status=%d\n", status);
+        return status;
     }
     status = GroupStatusGet(poll_socket, group, &groupStatus);
     if (status != 0) {
         printf("Error performing GroupStatusGet, status=%d\n", status);
-        return;
+        return status;
     }
     printf("Group status after stopping gathering=%d\n", groupStatus);
 
-    /* FTP the gathering file from the XPS to the local directory */
-    printf("FTPing gathering file from XPS ...\n");
-    status = ftpChangeDir(ftpSocket, GATHERING_DIRECTORY);
+    /* Read the number of lines of gathering */
+    status = GatheringCurrentNumberGet(drive_socket, &currentSamples, &maxSamples);
     if (status != 0) {
-        printf("Error calling ftpChangeDir, status=%d\n", status);
-        return;
+        printf("Error calling GatherCurrentNumberGet, status=%d\n", status);
+        return status;
     }
-    status = ftpRetrieveFile(ftpSocket, GATHERING_FILE);
-    if (status != 0) {
-        printf("Error calling ftpRetrieveFile, status=%d\n", status);
-        return;
+    if (currentSamples != NUM_GATHERING_POINTS) {
+        printf("readGathering: warning, NUM_GATHERING_POINTS=%d, currentSamples=%d\n", 
+            NUM_GATHERING_POINTS, currentSamples);
     }
-    status = ftpDisconnect(ftpSocket);
-    if (status != 0) {
-        printf("Error calling ftpDisconnect, status=%d\n", status);
-        return;
-    }
-   
-    printf("Opening gathering file ...\n");
-    gatheringFile = fopen(GATHERING_FILE, "r");
-    if (gatheringFile == NULL) {
-        perror("Errror opening gathering file");
-        return;
-    }
-
-    /* Read 1st 2 lines */
-    for (i=0; i<2; i++) {
-        fgets (buffer, 1000, gatheringFile);
-        printf("Line %d of gathering file = %s\n", i, buffer);
-    }
-    for (i=0; i<NUM_ELEMENTS; i++) {
-        for (j=0; j<NUM_AXES; j++) {
-            nitems = fscanf(gatheringFile,"%lf %lf %lf ", &setpoint, &actual, &velocity);
-            if (nitems != 3) printf("nitems=%d, should be 3\n", nitems);
-            printf("Point=%d, axis=%d, setpoint=%f, actual=%f, error=%f, velocity=%f\n", 
-                   i+1, j+1, setpoint, actual, actual-setpoint, velocity);
-        }
-    }
-    fclose (gatheringFile);
-    return;
+    status = GatheringDataMultipleLinesGet(drive_socket, 0, currentSamples, buffer);
+    printf("GatheringDataMultipleLinesGet, status=%d, currentSamples=%d\n", status, currentSamples);
+    printf("Buffer length=%ld, buffer=\n%s\n", (long)strlen(buffer), buffer);    
+    return 0;
 }
 

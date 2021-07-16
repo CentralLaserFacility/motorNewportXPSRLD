@@ -6,7 +6,7 @@ include $(TOP)/configure/CONFIG
 # must be uncommented to use diagnostic debugging messages.
 #!USR_CXXFLAGS += -DDEBUG
 
-# The Newport XPS_C8_driver.cpp file uses "char *" when they should use "const char *".
+# The Newport XPS_RLD_driver.cpp file uses "char *" when they should use "const char *".
 # Turn off warnings when we call this functions with string constants
 USR_CPPFLAGS_Linux += -Wno-write-strings
 
@@ -21,75 +21,75 @@ ifeq ("$(HAVE_LIBSSH2)", "YES")
 endif
 
 # Install the XPS header file in case applications in another module need to use it
-INC += XPS_C8_drivers.h
+INC += XPS_RLD_drivers.h
 
 DBD += devNewport.dbd
 ifdef SNCSEQ
 DBD += devNewportSeq.dbd
 endif
 
-LIBRARY_IOC = Newport
+LIBRARY_IOC = NewportXPSRLD
 
-Newport_SRCS += NewportRegister.cc
+NewportXPSRLD_SRCS += NewportRegister.cc
 
 # MM3000 (i.e., MM3000) device driver.
-Newport_SRCS += devMM3000.cc drvMM3000.cc
+NewportXPSRLD_SRCS += devMM3000.cc drvMM3000.cc
 
 # MM4000/5 (i.e., MM4000) device driver.
-Newport_SRCS += devMM4000.cc drvMM4000.cc
-Newport_SRCS += drvMM4000Asyn.c
+NewportXPSRLD_SRCS += devMM4000.cc drvMM4000.cc
+NewportXPSRLD_SRCS += drvMM4000Asyn.c
 ifdef SNCSEQ
-Newport_SRCS += MM4005_trajectoryScan.st
+NewportXPSRLD_SRCS += MM4005_trajectoryScan.st
 endif
 
 # PM500 device driver.
-Newport_SRCS += devPM500.cc  drvPM500.cc
+NewportXPSRLD_SRCS += devPM500.cc  drvPM500.cc
 
 # ESP300 device driver.
-Newport_SRCS += devESP300.cc drvESP300.cc
+NewportXPSRLD_SRCS += devESP300.cc drvESP300.cc
 
 # SMC100 device driver
-Newport_SRCS += SMC100Driver.cpp
+NewportXPSRLD_SRCS += SMC100Driver.cpp
 
 # Agilis device drivers
-Newport_SRCS += AG_UC.cpp
-Newport_SRCS += AG_CONEX.cpp
+NewportXPSRLD_SRCS += AG_UC.cpp
+NewportXPSRLD_SRCS += AG_CONEX.cpp
 
 # XPS C8 device driver
-Newport_SRCS += asynOctetSocket.cpp 
-Newport_SRCS += XPS_C8_drivers.cpp 
-Newport_SRCS += drvXPSAsynAux.c
-Newport_SRCS += xps_ftp.c
-Newport_SRCS += xpsSFTPUpload.c
+NewportXPSRLD_SRCS += asynOctetSocket.cpp 
+NewportXPSRLD_SRCS += XPS_RLD_drivers.cpp 
+NewportXPSRLD_SRCS += drvXPSAsynAux.c
+NewportXPSRLD_SRCS += xps_ftp.c
+NewportXPSRLD_SRCS += xpsSFTPUpload.c
 # This is the model 2 asyn driver
-Newport_SRCS += drvXPSAsyn.c XPSAsynInterpose.c
+NewportXPSRLD_SRCS += drvXPSAsyn.c XPSAsynInterpose.c
 # This is the model 3 asyn driver
-Newport_SRCS += XPSController.cpp
-Newport_SRCS += XPSAxis.cpp
+NewportXPSRLD_SRCS += XPSController.cpp
+NewportXPSRLD_SRCS += XPSAxis.cpp
 ifdef SNCSEQ
-Newport_SRCS += XPS_trajectoryScan.st
-Newport_SRCS += xpsSlave.st
+NewportXPSRLD_SRCS += XPS_trajectoryScan.st
+NewportXPSRLD_SRCS += xpsSlave.st
 endif
 #
-Newport_SRCS += hxp_drivers.cpp
-Newport_SRCS += HXPDriver.cpp
+NewportXPSRLD_SRCS += hxp_drivers.cpp
+NewportXPSRLD_SRCS += HXPDriver.cpp
  
 # strtok_r needed on WIN32
-Newport_SRCS_WIN32 += strtok_r.c
+NewportXPSRLD_SRCS_WIN32 += strtok_r.c
 
 # XPS Gathering test function
-Newport_SRCS += XPSGathering.c
-Newport_SRCS += XPSGatheringRegister.c
+NewportXPSRLD_SRCS += XPSGathering.c
+NewportXPSRLD_SRCS += XPSGatheringRegister.c
 
 # Function which will run a tcl script on an XPS
-Newport_SRCS += tclCall.cc
+NewportXPSRLD_SRCS += tclCall.cc
 
-Newport_LIBS += motor asyn
+NewportXPSRLD_LIBS += motor asyn
 ifdef SNCSEQ
-Newport_LIBS += seq pv
+NewportXPSRLD_LIBS += seq pv
 endif
-Newport_LIBS += $(EPICS_BASE_IOC_LIBS)
-Newport_SYS_LIBS_WIN32 += ws2_32
+NewportXPSRLD_LIBS += $(EPICS_BASE_IOC_LIBS)
+NewportXPSRLD_SYS_LIBS_WIN32 += ws2_32
 
 PROD_IOC += XPSGatheringMain
 XPSGatheringMain_SRCS += XPSGatheringMain.c
