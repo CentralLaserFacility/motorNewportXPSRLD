@@ -174,6 +174,7 @@ XPSController::XPSController(const char *portName, const char *IPAddress, int IP
   createParam(XPSStatusStringString,                  asynParamOctet,   &XPSStatusString_);
   createParam(XPSTclScriptString,                     asynParamOctet,   &XPSTclScript_);
   createParam(XPSTclScriptExecuteString,              asynParamInt32,   &XPSTclScriptExecute_);
+  createParam(XPSEventOffsetString,                   asynParamInt32,   &XPSEventOffset);
 
   // This socket is used for polling by the controller and all axes
   pollSocket_ = TCP_ConnectToServer((char *)IPAddress, IPPort, XPS_POLL_TIMEOUT);
@@ -288,7 +289,10 @@ asynStatus XPSController::writeInt32(asynUser *pasynUser, epicsInt32 value)
     status = pAxis->setPositionCompare();
     status = pAxis->getPositionCompare();
 
-  } else {
+  } else if (function == XPSEventOffset) {
+    status = enableEventTrigger();
+
+  }else {
     /* Call base class method */
     status = asynMotorController::writeInt32(pasynUser, value);
   }
@@ -1335,7 +1339,93 @@ asynStatus XPSController::enableMovingMode()
   return asynSuccess; 
 }
 
+//Enable event Trigger 
+asynStatus XPSController::enableEventTrigger(){
 
+  int status;
+  int j,eventId;
+  bool executeOK=true;
+  char message[MAX_MESSAGE_LEN];
+  double lowLimit,highLimit;
+  double offsetHigh, offsetLow;
+  double outputVoltage = 5; //5 volts
+  static const char *functionName = "enableEventTrigger";
+
+  //upper limit
+  // 5 - upperLimit ==> 5 - 1.75 = 3.25 //offset
+
+  //lower limit 
+  // -Pos +5 + lowerLimit
+  
+  // Get Travel limits  
+  status = PositionerUserTravelLimitsGet(pollSocket_,
+                                           pAxes_[j]->positionerName_,
+                                           &lowLimit, 
+                                           &highLimit);
+    if (status) {
+        printf("error gettings limits\n");
+    }
+
+  // Calculate Trigger offset
+  offsetHigh = outputVoltage - (highLimit * 0.01);
+  offsetLow = outputVoltage + lowLimit * 0.01;
+
+  /* Define upper limit trigger */
+  status = EventExtendedConfigurationTriggerSet(pollSocket_, 1, "Always", "", "", "", "");
+  if (status != 0) {
+    executeOK = false;
+    sprintf(message, "Error performing EventExtendedConfigurationTriggerSet, status=%d", status);
+    return (asynStatus)status;
+  }
+
+  /* Define action */
+  status = EventExtendedConfigurationActionSet(pollSocket_, 1, 
+                                               "GPIO2.DAC1.DACSet.CurrentPosition", "Group1.Pos", "0.01", (char*)std::to_string(offsetHigh).c_str(), "0");
+  if (status != 0) {
+    executeOK = false;
+    sprintf(message, "Error performing EventExtendedConfigurationActionSet, status=%d", status);
+    return (asynStatus)status;
+  }
+
+  /* Enable event */
+  status= EventExtendedStart(pollSocket_, &eventId);
+  if (status != 0) {
+    executeOK = false;
+    sprintf(message, "Error performing EventExtendedStart, status=%d", status);
+  }
+
+  sleep(1);
+
+  /* Define lower limit trigger */
+  status = EventExtendedConfigurationTriggerSet(pollSocket_, 1, "Always", "", "", "", "");
+  if (status != 0) {
+    executeOK = false;
+    sprintf(message, "Error performing EventExtendedConfigurationTriggerSet, status=%d", status);
+    return (asynStatus)status;
+  }
+
+  /* Define lower limit action */
+  asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
+            "%s:%s: calling EventExtendedConfigurationActionSet(%d, %d, %s, %s, %s, %s, %s)\n", 
+            driverName, functionName, pollSocket_, 1, "GPIO2.DAC2.DACSet.CurrentPosition", "Group1.Pos", "0.01", offsetLow, "0");
+
+  status = EventExtendedConfigurationActionSet(pollSocket_, 1, 
+                                               "GPIO2.DAC2.DACSet.CurrentPosition", "Group1.Pos", "-0.01", (char*)std::to_string(offsetLow).c_str(), "0");
+  if (status != 0) {
+    executeOK = false;
+    sprintf(message, "Error performing EventExtendedConfigurationActionSet, status=%d", status);
+    return (asynStatus)status;
+  }
+
+  /* Enable lower limit event */
+  status= EventExtendedStart(pollSocket_, &eventId);
+  if (status != 0) {
+    executeOK = false;
+    sprintf(message, "Error performing EventExtendedStart, status=%d", status);
+  }
+
+  return (asynStatus)status;
+}
 
 /** The following functions have C linkage, and can be called directly or from iocsh */
 

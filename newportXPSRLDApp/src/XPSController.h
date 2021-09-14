@@ -53,6 +53,7 @@ typedef enum {
 #define XPSStatusStringString                 "XPS_STATUS_STRING"
 #define XPSTclScriptString                    "XPS_TCL_SCRIPT"
 #define XPSTclScriptExecuteString             "XPS_TCL_SCRIPT_EXECUTE"
+#define XPSEventOffsetString                  "XPS_EVENT_TRIGGER"
 
 class epicsShareClass XPSController : public asynMotorController {
 
@@ -94,6 +95,8 @@ class epicsShareClass XPSController : public asynMotorController {
    to determine motion done. */ 
   asynStatus enableMovingMode();
 
+  asynStatus enableEventTrigger();
+
 
   protected:
   XPSAxis **pAxes_;       /**< Array of pointers to axis objects */
@@ -117,7 +120,8 @@ class epicsShareClass XPSController : public asynMotorController {
   int XPSStatusString_;
   int XPSTclScript_;
   int XPSTclScriptExecute_;
-  #define LAST_XPS_PARAM XPSTclScriptExecute_
+  int XPSEventOffset;
+  #define LAST_XPS_PARAM XPSEventOffset
 
   private:
   bool enableSetPosition_;          /**< Enable/disable setting the position from EPICS */ 
